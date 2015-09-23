@@ -1,0 +1,15 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+	mavenCentral()
+}
+
+test {
+	useTestNG()
+}
+
+dependencies {
+	compile group: 'org.yaml', name: 'snakeyaml', version: '1.16'
+	testCompile group: 'org.testng', name: 'testng', version: '6.9.6'
+}
