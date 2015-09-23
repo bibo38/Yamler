@@ -1,5 +1,5 @@
-import net.cubespace.Yamler.Config.Config;
-import net.cubespace.Yamler.Config.Path;
+import org.yamler.yamler.Config;
+import org.yamler.yamler.Path;
 
 /**
  * @author geNAZt (fabian.fassbender42@googlemail.com)

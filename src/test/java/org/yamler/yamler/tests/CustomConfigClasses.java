@@ -1,3 +1,5 @@
+package org.yamler.yamler.tests;
+
 import org.yamler.yamler.Comments;
 import org.yamler.yamler.Config;
 

@@ -1,4 +1,4 @@
-import net.cubespace.Yamler.Config.InvalidConfigurationException;
+import org.yamler.yamler.InvalidConfigurationException;
 
 /**
  * @author geNAZt (fabian.fassbender42@googlemail.com)
