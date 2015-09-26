@@ -60,6 +60,8 @@ public class InternalConverter {
 
     public void fromConfig(Config config, Field field, ConfigSection root, String path) throws Exception {
         Object obj = field.get(config);
+        if(!root.has(path))
+            return;
 
         Converter converter;
 

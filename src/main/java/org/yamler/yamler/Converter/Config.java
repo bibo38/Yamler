@@ -30,7 +30,7 @@ public class Config implements Converter {
             obj.addConverter(aClass);
         }
 
-        obj.loadFromMap((section instanceof Map) ? (Map) section : ((ConfigSection) section).getRawMap(), type);
+        obj.loadFromMap((section instanceof Map) ? (Map) section : ((ConfigSection) section).getRawMap(), type, genericType);
         return obj;
     }
     

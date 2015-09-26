@@ -1,17 +1,19 @@
 package org.yamler.yamler;
 
+import org.yamler.yamler.Converter.Converter;
+
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.lang.reflect.ParameterizedType;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author geNAZt (fabian.fassbender42@googlemail.com)
  */
-public class Config extends MapConfigMapper implements IConfig {
+public class Config extends YamlConfigMapper implements IConfig {
     public Config() {
 
     }
@@ -27,64 +29,16 @@ public class Config extends MapConfigMapper implements IConfig {
             throw new IllegalArgumentException("Saving a config without given File");
         }
 
-        if (root == null) {
-            root = new ConfigSection();
-        }
-
         clearComments();
 
-        internalSave(getClass());
+        try
+        {
+            root = ConfigSection.convertFromMap(saveToMap(getClass()));
+        } catch(Exception e)
+        {
+            e.printStackTrace();
+        }
         saveToYaml();
-    }
-
-    private void internalSave(Class clazz) throws InvalidConfigurationException {
-        if (!clazz.getSuperclass().equals(Config.class)) {
-            internalSave(clazz.getSuperclass());
-        }
-
-        for (Field field : clazz.getDeclaredFields()) {
-            if (doSkip(field)) continue;
-
-            String path = (CONFIG_MODE.equals(ConfigMode.DEFAULT)) ? field.getName().replaceAll("_", ".") : field.getName();
-
-            ArrayList<String> comments = new ArrayList<>();
-            for (Annotation annotation : field.getAnnotations()) {
-                if (annotation instanceof Comment) {
-                    Comment comment = (Comment) annotation;
-                    comments.add(comment.value());
-
-                }
-
-                if (annotation instanceof Comments) {
-                    Comments comment = (Comments) annotation;
-                    comments.addAll(Arrays.asList(comment.value()));
-                }
-            }
-
-            if (field.isAnnotationPresent(Path.class)) {
-                Path path1 = field.getAnnotation(Path.class);
-                path = path1.value();
-            }
-
-            if (comments.size() > 0) {
-                for (String comment : comments) {
-                    addComment(path, comment);
-                }
-            }
-
-            if (Modifier.isPrivate(field.getModifiers())) {
-                field.setAccessible(true);
-            }
-
-            try {
-                converter.toConfig(this, field, root, path);
-                converter.fromConfig(this, field, root, path);
-            } catch (Exception e) {
-                if (!skipFailedObjects) {
-                    throw new InvalidConfigurationException("Could not save the Field", e);
-                }
-            }
-        }
     }
 
     @Override
@@ -125,12 +79,6 @@ public class Config extends MapConfigMapper implements IConfig {
     }
 
     @Override
-    public void reload() throws InvalidConfigurationException {
-        loadFromYaml();
-        internalLoad(getClass());
-    }
-
-    @Override
     public void load() throws InvalidConfigurationException {
         if (CONFIG_FILE == null) {
             throw new IllegalArgumentException("Loading a config without given File");
@@ -138,15 +86,25 @@ public class Config extends MapConfigMapper implements IConfig {
 
         loadFromYaml();
         update(root);
-        internalLoad(getClass());
+        try
+        {
+            loadFromMap(root.getRawMap(), getClass(), null);
+        } catch(Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
-    private void internalLoad(Class clazz) throws InvalidConfigurationException {
-        if (!clazz.getSuperclass().equals(Config.class)) {
-            internalLoad(clazz.getSuperclass());
+    public Map<String, Object> saveToMap(Class clazz) throws Exception {
+        Map<String, Object> returnMap = new HashMap<>();
+
+        if (!clazz.getSuperclass().equals(Config.class) && !clazz.getSuperclass().equals(Object.class)) {
+            Map<String, Object> map = saveToMap(clazz.getSuperclass());
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                returnMap.put( entry.getKey(), entry.getValue() );
+            }
         }
 
-        boolean save = false;
         for (Field field : clazz.getDeclaredFields()) {
             if (doSkip(field)) continue;
 
@@ -161,28 +119,35 @@ public class Config extends MapConfigMapper implements IConfig {
                 field.setAccessible(true);
             }
 
-            if (root.has(path)) {
-                try {
-                    converter.fromConfig(this, field, root, path);
-                } catch (Exception e) {
-                    throw new InvalidConfigurationException("Could not set field", e);
-                }
-            } else {
-                try {
-                    converter.toConfig(this, field, root, path);
-                    converter.fromConfig(this, field, root, path);
-
-                    save = true;
-                } catch (Exception e) {
-                    if (!skipFailedObjects) {
-                        throw new InvalidConfigurationException("Could not get field", e);
-                    }
-                }
-            }
+            try {
+                returnMap.put(path, field.get(this));
+            } catch (IllegalAccessException e) { }
         }
 
-        if (save) {
-            saveToYaml();
+        Converter mapConverter = converter.getConverter(Map.class);
+        return (Map<String, Object>) mapConverter.toConfig(HashMap.class, returnMap, null);
+    }
+
+    public void loadFromMap(Map section, Class clazz, ParameterizedType type) throws Exception {
+        if (!clazz.getSuperclass().equals(Config.class) && !clazz.getSuperclass().equals(Config.class)) {
+            loadFromMap(section, clazz.getSuperclass(), type); // TODO Mapping parameterized type
+        }
+
+        for (Field field : clazz.getDeclaredFields()) {
+            if (doSkip(field)) continue;
+
+            String path = (CONFIG_MODE.equals(ConfigMode.DEFAULT)) ? field.getName().replaceAll("_", ".") : field.getName();
+
+            if (field.isAnnotationPresent(Path.class)) {
+                Path path1 = field.getAnnotation(Path.class);
+                path = path1.value();
+            }
+
+            if(Modifier.isPrivate(field.getModifiers())) {
+                field.setAccessible(true);
+            }
+
+            converter.fromConfig(this, field, ConfigSection.convertFromMap(section), path);
         }
     }
 
