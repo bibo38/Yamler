@@ -1,8 +1,8 @@
 package org.yamler.yamler.Converter;
 
+import org.yamler.yamler.GenericData;
 import org.yamler.yamler.InternalConverter;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -18,7 +18,7 @@ public class Array implements Converter {
     }
 
     @Override
-    public Object toConfig(Class<?> type, Object obj, ParameterizedType parameterizedType) throws Exception {
+    public Object toConfig(Class<?> type, Object obj) throws Exception {
         Class<?> singleType = type.getComponentType();
         Converter conv = internalConverter.getConverter(singleType);
         if(conv == null)
@@ -26,12 +26,12 @@ public class Array implements Converter {
 
         Object[] ret = new Object[java.lang.reflect.Array.getLength(obj)];
         for(int i = 0; i < ret.length; i++)
-            ret[i] = conv.toConfig(singleType, java.lang.reflect.Array.get(obj, i), parameterizedType);
+            ret[i] = conv.toConfig(singleType, java.lang.reflect.Array.get(obj, i));
         return ret;
     }
 
     @Override
-    public Object fromConfig(Class type, Object section, ParameterizedType genericType) throws Exception {
+    public Object fromConfig(Class type, Object section, GenericData genericData) throws Exception {
         Class<?> singleType = type.getComponentType();
         java.util.List values;
 
@@ -48,7 +48,7 @@ public class Array implements Converter {
             return values.toArray((Object[]) ret);
 
         for(int i = 0; i < values.size(); i++)
-            java.lang.reflect.Array.set(ret, i, conv.fromConfig(singleType, values.get(i), genericType));
+            java.lang.reflect.Array.set(ret, i, conv.fromConfig(singleType, values.get(i), genericData));
         return ret;
     }
 

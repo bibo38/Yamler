@@ -1,8 +1,8 @@
 package org.yamler.yamler.Converter;
 
+import org.yamler.yamler.GenericData;
 import org.yamler.yamler.InternalConverter;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -15,7 +15,7 @@ public class Set implements Converter {
     }
 
     @Override
-    public Object toConfig(Class<?> type, Object obj, ParameterizedType genericType) throws Exception {
+    public Object toConfig(Class<?> type, Object obj) throws Exception {
         java.util.Set<Object> values = (java.util.Set<Object>) obj;
         java.util.List newList = new ArrayList();
 
@@ -26,7 +26,7 @@ public class Set implements Converter {
             Converter converter = internalConverter.getConverter(val.getClass());
 
             if (converter != null)
-                newList.add(converter.toConfig(val.getClass(), val, null));
+                newList.add(converter.toConfig(val.getClass(), val));
             else
                 newList.add(val);
         }
@@ -35,7 +35,7 @@ public class Set implements Converter {
     }
 
     @Override
-    public Object fromConfig(Class type, Object section, ParameterizedType genericType) throws Exception {
+    public Object fromConfig(Class type, Object section, GenericData genericData) throws Exception {
         java.util.List<Object> values = (java.util.List<Object>) section;
         java.util.Set<Object> newList = new HashSet<>();
 
@@ -43,12 +43,13 @@ public class Set implements Converter {
             newList = (java.util.Set<Object>) type.newInstance();
         } catch (Exception e) { }
 
-        if (genericType != null && genericType.getActualTypeArguments()[0] instanceof Class) {
-            Converter converter = internalConverter.getConverter((Class) genericType.getActualTypeArguments()[0]);
+        Class<?> setClass = genericData.getType(type.getTypeParameters()[0]);
+        if (setClass != null) {
+            Converter converter = internalConverter.getConverter(setClass);
 
             if (converter != null) {
                 for ( int i = 0; i < values.size(); i++ ) {
-                    newList.add( converter.fromConfig( ( Class ) genericType.getActualTypeArguments()[0], values.get( i ), null ) );
+                    newList.add( converter.fromConfig( setClass, values.get( i ), genericData ) );
                 }
             } else {
                 newList.addAll( values );

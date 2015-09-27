@@ -4,7 +4,6 @@ import org.yamler.yamler.Converter.*;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -58,23 +57,24 @@ public class InternalConverter {
         return null;
     }
 
-    public void fromConfig(Config config, Field field, ConfigSection root, String path) throws Exception {
+    public void fromConfig(Config config, Field field, ConfigSection root, String path, GenericData genericData) throws Exception {
         Object obj = field.get(config);
         if(!root.has(path))
             return;
 
         Converter converter;
+        genericData.addField(field);
 
         if (obj != null) {
             converter = getConverter(obj.getClass());
 
             if (converter != null) {
-                field.set(config, converter.fromConfig(obj.getClass(), root.get(path), (field.getGenericType() instanceof ParameterizedType) ? (ParameterizedType) field.getGenericType() : null));
+                field.set(config, converter.fromConfig(obj.getClass(), root.get(path), genericData));
                 return;
             } else {
                 converter = getConverter(field.getType());
                 if (converter != null) {
-                    field.set(config, converter.fromConfig(field.getType(), root.get(path), (field.getGenericType() instanceof ParameterizedType) ? (ParameterizedType) field.getGenericType() : null));
+                    field.set(config, converter.fromConfig(field.getType(), root.get(path), genericData));
                     return;
                 }
             }
@@ -82,11 +82,12 @@ public class InternalConverter {
             converter = getConverter(field.getType());
 
             if (converter != null) {
-                field.set(config, converter.fromConfig(field.getType(), root.get(path), (field.getGenericType() instanceof ParameterizedType) ? (ParameterizedType) field.getGenericType() : null));
+                field.set(config, converter.fromConfig(field.getType(), root.get(path), genericData));
                 return;
             }
         }
 
+        genericData.removeClass(field.getType());
         field.set(config, root.get(path));
     }
 
@@ -99,12 +100,12 @@ public class InternalConverter {
             converter = getConverter(obj.getClass());
 
             if (converter != null) {
-                root.set(path, converter.toConfig(obj.getClass(), obj, (field.getGenericType() instanceof ParameterizedType) ? (ParameterizedType) field.getGenericType() : null));
+                root.set(path, converter.toConfig(obj.getClass(), obj));
                 return;
             } else {
                 converter = getConverter(field.getType());
                 if (converter != null) {
-                    root.set(path, converter.toConfig(field.getType(), obj, (field.getGenericType() instanceof ParameterizedType) ? (ParameterizedType) field.getGenericType() : null));
+                    root.set(path, converter.toConfig(field.getType(), obj));
                     return;
                 }
             }

@@ -1,9 +1,9 @@
 package org.yamler.yamler.Converter;
 
 import org.yamler.yamler.ConfigSection;
+import org.yamler.yamler.GenericData;
 import org.yamler.yamler.InternalConverter;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.Map;
 
 /**
@@ -17,12 +17,12 @@ public class Config implements Converter {
     }
 
     @Override
-    public Object toConfig(Class<?> type, Object obj, ParameterizedType parameterizedType) throws Exception {
+    public Object toConfig(Class<?> type, Object obj) throws Exception {
         return (obj instanceof Map) ? obj : ((org.yamler.yamler.Config) obj).saveToMap( obj.getClass() );
     }
 
     @Override
-    public Object fromConfig(Class type, Object section, ParameterizedType genericType) throws Exception {
+    public Object fromConfig(Class type, Object section, GenericData genericData) throws Exception {
         org.yamler.yamler.Config obj = (org.yamler.yamler.Config) newInstance(type);
 
         // Inject Converter stack into subconfig
@@ -30,7 +30,7 @@ public class Config implements Converter {
             obj.addConverter(aClass);
         }
 
-        obj.loadFromMap((section instanceof Map) ? (Map) section : ((ConfigSection) section).getRawMap(), type, genericType);
+        obj.loadFromMap((section instanceof Map) ? (Map) section : ((ConfigSection) section).getRawMap(), type, genericData);
         return obj;
     }
     

@@ -1,8 +1,8 @@
 package org.yamler.yamler.Converter;
 
+import org.yamler.yamler.GenericData;
 import org.yamler.yamler.InternalConverter;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.HashSet;
 
 /**
@@ -27,12 +27,12 @@ public class Primitive implements Converter {
     }
 
     @Override
-    public Object toConfig(Class<?> type, Object obj, ParameterizedType parameterizedType) throws Exception {
+    public Object toConfig(Class<?> type, Object obj) throws Exception {
         return obj;
     }
 
     @Override
-    public Object fromConfig(Class type, Object section, ParameterizedType genericType) throws Exception {
+    public Object fromConfig(Class type, Object section, GenericData genericData) throws Exception {
         switch(type.getSimpleName()) {
             case "short":
                 return (section instanceof Short) ? section : new Integer((int) section).shortValue();

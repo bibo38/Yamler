@@ -1,9 +1,9 @@
 package org.yamler.yamler.Converter;
 
 import org.yamler.yamler.ConfigSection;
+import org.yamler.yamler.GenericData;
 import org.yamler.yamler.InternalConverter;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.HashMap;
 
 /**
@@ -17,7 +17,7 @@ public class Map implements Converter {
     }
 
     @Override
-    public Object toConfig(Class<?> type, Object obj, ParameterizedType genericType) throws Exception {
+    public Object toConfig(Class<?> type, Object obj) throws Exception {
         java.util.Map<Object, Object> map1 = (java.util.Map) obj;
 
         for (java.util.Map.Entry<Object, Object> entry : map1.entrySet()) {
@@ -26,65 +26,49 @@ public class Map implements Converter {
             Class clazz = entry.getValue().getClass();
 
             Converter converter = internalConverter.getConverter(clazz);
-            map1.put(entry.getKey(), (converter != null) ? converter.toConfig(clazz, entry.getValue(), null) : entry.getValue());
+            map1.put(entry.getKey(), (converter != null) ? converter.toConfig(clazz, entry.getValue()) : entry.getValue());
         }
 
         return map1;
     }
 
     @Override
-    public Object fromConfig(Class type, Object section, ParameterizedType genericType) throws Exception {
-        if (genericType != null) {
+    public Object fromConfig(Class type, Object section, GenericData genericData) throws Exception {
+        Class<?> keyClass = genericData.getType(type.getTypeParameters()[0]);
+        if (keyClass != null) {
 
             java.util.Map map;
             try {
-                map = ((java.util.Map) ((Class) genericType.getRawType()).newInstance());
+                map = ((java.util.Map) type.newInstance());
             } catch (InstantiationException e) {
                 map = new HashMap();
             }
 
-            if (genericType.getActualTypeArguments().length == 2) {
-                Class keyClass = ((Class) genericType.getActualTypeArguments()[0]);
+            if ( section == null )
+                section = new HashMap<>();
 
-                if ( section == null ) section = new HashMap<>();
+            java.util.Map<?, ?> map1 = (section instanceof java.util.Map) ? (java.util.Map) section : ((ConfigSection) section).getRawMap();
+            for (java.util.Map.Entry<?, ?> entry : map1.entrySet()) {
+                Object key;
 
-                java.util.Map<?, ?> map1 = (section instanceof java.util.Map) ? (java.util.Map) section : ((ConfigSection) section).getRawMap();
-                for (java.util.Map.Entry<?, ?> entry : map1.entrySet()) {
-                    Object key;
-
-                    if (keyClass.equals(Integer.class) && !(entry.getKey() instanceof Integer)) {
-                        key = Integer.valueOf((String) entry.getKey());
-                    } else if (keyClass.equals(Short.class) && !(entry.getKey() instanceof Short)) {
-                        key = Short.valueOf((String) entry.getKey());
-                    } else if (keyClass.equals(Byte.class) && !(entry.getKey() instanceof Byte)) {
-                        key = Byte.valueOf((String) entry.getKey());
-                    } else if (keyClass.equals(Float.class) && !(entry.getKey() instanceof Float)) {
-                        key = Float.valueOf((String) entry.getKey());
-                    } else if (keyClass.equals(Double.class) && !(entry.getKey() instanceof Double)) {
-                        key = Double.valueOf((String) entry.getKey());
-                    } else {
-                        key = entry.getKey();
-                    }
-
-                    Class clazz;
-                    if (genericType.getActualTypeArguments()[1] instanceof ParameterizedType) {
-                        ParameterizedType parameterizedType = (ParameterizedType) genericType.getActualTypeArguments()[1];
-                        clazz = (Class) parameterizedType.getRawType();
-                    } else {
-                        clazz = (Class) genericType.getActualTypeArguments()[1];
-                    }
-
-                    Converter converter = internalConverter.getConverter(clazz);
-                    map.put(key, (converter != null) ? converter.fromConfig(clazz, entry.getValue(), (genericType.getActualTypeArguments()[1] instanceof ParameterizedType) ? (ParameterizedType) genericType.getActualTypeArguments()[1] : null) : entry.getValue());
-                }
-            } else {
-                Converter converter = internalConverter.getConverter((Class) genericType.getRawType());
-
-                if (converter != null) {
-                    return converter.fromConfig((Class) genericType.getRawType(), section, null);
+                if (keyClass.equals(Integer.class) && !(entry.getKey() instanceof Integer)) {
+                    key = Integer.valueOf((String) entry.getKey());
+                } else if (keyClass.equals(Short.class) && !(entry.getKey() instanceof Short)) {
+                    key = Short.valueOf((String) entry.getKey());
+                } else if (keyClass.equals(Byte.class) && !(entry.getKey() instanceof Byte)) {
+                    key = Byte.valueOf((String) entry.getKey());
+                } else if (keyClass.equals(Float.class) && !(entry.getKey() instanceof Float)) {
+                    key = Float.valueOf((String) entry.getKey());
+                } else if (keyClass.equals(Double.class) && !(entry.getKey() instanceof Double)) {
+                    key = Double.valueOf((String) entry.getKey());
+                } else {
+                    key = entry.getKey();
                 }
 
-                return (section instanceof java.util.Map) ? (java.util.Map) section : ((ConfigSection) section).getRawMap();
+                Class<?> valueClass = genericData.getType(type.getTypeParameters()[1]);
+
+                Converter converter = internalConverter.getConverter(valueClass);
+                map.put(key, (converter != null) ? converter.fromConfig(valueClass, entry.getValue(), genericData) : entry.getValue());
             }
 
             return map;

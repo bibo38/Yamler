@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -88,7 +87,7 @@ public class Config extends YamlConfigMapper implements IConfig {
         update(root);
         try
         {
-            loadFromMap(root.getRawMap(), getClass(), null);
+            loadFromMap(root.getRawMap(), getClass(), new GenericData());
         } catch(Exception e)
         {
             e.printStackTrace();
@@ -125,12 +124,12 @@ public class Config extends YamlConfigMapper implements IConfig {
         }
 
         Converter mapConverter = converter.getConverter(Map.class);
-        return (Map<String, Object>) mapConverter.toConfig(HashMap.class, returnMap, null);
+        return (Map<String, Object>) mapConverter.toConfig(HashMap.class, returnMap);
     }
 
-    public void loadFromMap(Map section, Class clazz, ParameterizedType type) throws Exception {
+    public void loadFromMap(Map section, Class clazz, GenericData genericData) throws Exception {
         if (!clazz.getSuperclass().equals(Config.class) && !clazz.getSuperclass().equals(Config.class)) {
-            loadFromMap(section, clazz.getSuperclass(), type); // TODO Mapping parameterized type
+            loadFromMap(section, clazz.getSuperclass(), genericData); // TODO Mapping parameterized type
         }
 
         for (Field field : clazz.getDeclaredFields()) {
@@ -147,7 +146,7 @@ public class Config extends YamlConfigMapper implements IConfig {
                 field.setAccessible(true);
             }
 
-            converter.fromConfig(this, field, ConfigSection.convertFromMap(section), path);
+            converter.fromConfig(this, field, ConfigSection.convertFromMap(section), path, genericData);
         }
     }
 
